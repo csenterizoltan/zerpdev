@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Default to the offline Demo provider so the module works
+         out of the box, with zero configuration, right after install. -->
+    <record id="config_parameter_ai_provider" model="ir.config_parameter">
+        <field name="key">ai_business_assistant.provider</field>
+        <field name="value">demo</field>
+    </record>
+
+</odoo>

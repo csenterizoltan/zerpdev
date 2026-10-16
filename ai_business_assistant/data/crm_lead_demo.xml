@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="crm_lead_ai_demo_1" model="crm.lead">
+        <field name="name">Odoo + AI integration for greenhouse operations</field>
+        <field name="type">opportunity</field>
+        <field name="partner_name">Green Valley Horticulture SRL</field>
+        <field name="contact_name">Ioana Pop</field>
+        <field name="email_from">ioana.pop@example.com</field>
+        <field name="phone">+40 722 000 111</field>
+        <field name="expected_revenue">8500</field>
+        <field name="probability">65</field>
+        <field name="description">Interested in an Odoo CRM + AI lead-scoring pilot for their greenhouse floriculture business. Asked for a demo call after seeing a LinkedIn post. No budget confirmed yet.</field>
+    </record>
+
+    <record id="crm_lead_ai_demo_2" model="crm.lead">
+        <field name="name">Website revamp + Odoo CRM for winery</field>
+        <field name="type">lead</field>
+        <field name="partner_name">Domeniul Viilor SRL</field>
+        <field name="contact_name">Marius Kovács</field>
+        <field name="email_from">marius@example.com</field>
+        <field name="expected_revenue">3200</field>
+        <field name="probability">20</field>
+        <field name="description">Downloaded a brochure, no direct contact yet. Early-stage, exploratory lead from an ad campaign.</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_ai_business_assistant" model="ir.ui.view">
+        <field name="name">res.config.settings.form.ai.business.assistant</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="crm.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[last()]" position="after">
+                <block title="AI Assistant" name="ai_business_assistant_settings">
+                    <setting string="AI Provider"
+                             help="Choose Demo to try the feature without any API key.">
+                        <field name="ai_business_assistant_provider"/>
+                    </setting>
+                    <setting string="API Key"
+                             invisible="ai_business_assistant_provider == 'demo'">
+                        <field name="ai_business_assistant_api_key" password="True"/>
+                    </setting>
+                    <setting string="Model"
+                             invisible="ai_business_assistant_provider == 'demo'">
+                        <field name="ai_business_assistant_model"
+                               placeholder="e.g. claude-sonnet-4-6"/>
+                    </setting>
+                    <setting string="Azure Endpoint"
+                             invisible="ai_business_assistant_provider != 'azure_openai'">
+                        <field name="ai_business_assistant_azure_endpoint"
+                               placeholder="https://your-resource.openai.azure.com"/>
+                    </setting>
+                    <setting string="Azure Deployment"
+                             invisible="ai_business_assistant_provider != 'azure_openai'">
+                        <field name="ai_business_assistant_azure_deployment"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

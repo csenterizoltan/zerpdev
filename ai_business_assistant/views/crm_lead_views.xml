@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="crm_lead_view_form_ai_business_assistant" model="ir.ui.view">
+        <field name="name">crm.lead.form.ai.business.assistant</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Header buttons: always visible, one click away -->
+            <xpath expr="//form/header" position="inside">
+                <button name="action_ai_analyze"
+                        string="Analyze with AI"
+                        type="object"
+                        icon="fa-magic"
+                        class="btn-primary"/>
+                <button name="action_ai_create_activity"
+                        string="Create Next Activity"
+                        type="object"
+                        icon="fa-calendar-plus-o"
+                        invisible="not ai_next_step or ai_activity_created"/>
+            </xpath>
+
+            <!-- Dedicated notebook page so the result is fully screenshotable -->
+            <xpath expr="//notebook" position="inside">
+                <page string="AI Assistant" name="ai_assistant">
+                    <div class="alert alert-info" role="alert"
+                         invisible="ai_last_analyzed">
+                        No AI analysis yet. Click <b>Analyze with AI</b> in the
+                        header to get a priority score, next step and a
+                        draft follow-up email for this lead.
+                    </div>
+
+                    <group invisible="not ai_last_analyzed">
+                        <group string="AI Analysis">
+                            <field name="ai_priority" widget="badge"
+                                   decoration-danger="ai_priority == 'high'"
+                                   decoration-warning="ai_priority == 'medium'"
+                                   decoration-success="ai_priority == 'low'"/>
+                            <field name="ai_intent"/>
+                            <field name="ai_next_step"/>
+                            <field name="ai_suggested_followup_date"/>
+                            <field name="ai_last_analyzed"/>
+                        </group>
+                        <group string="Risks / Missing Info">
+                            <field name="ai_risks" nolabel="1"/>
+                        </group>
+                    </group>
+
+                    <group invisible="not ai_last_analyzed" string="AI Summary">
+                        <field name="ai_summary" nolabel="1"/>
+                    </group>
+
+                    <group invisible="not ai_last_analyzed" string="Suggested Follow-up Email">
+                        <field name="ai_suggested_email" nolabel="1"/>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
