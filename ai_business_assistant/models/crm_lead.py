@@ -3,8 +3,10 @@ import logging
 from datetime import timedelta
 
 from odoo import fields, models, _
+from odoo.tools import html2plaintext
 from odoo.exceptions import UserError
 
+from ..services import followup as fu
 from ..services.ai_service import get_ai_provider
 
 _logger = logging.getLogger(__name__)
@@ -48,6 +50,93 @@ class CrmLead(models.Model):
     ai_activity_created = fields.Boolean(
         string="AI Activity Created", readonly=True, copy=False, default=False,
     )
+
+    ai_followup_ids = fields.One2many(
+        "ai.followup", "lead_id", string="AI Follow-ups", readonly=True)
+
+    # ------------------------------------------------------------------
+    # AI Follow-up Generator
+    # ------------------------------------------------------------------
+    def _build_followup_context(self):
+        """Return ``(context, basis)`` for the follow-up prompt.
+
+        Runs as the current user (no sudo): the AI only sees what the
+        salesperson could read anyway. PII is minimized: no phone number
+        or email address, only whether they exist.
+        """
+        self.ensure_one()
+        today = fields.Date.context_today(self)
+        messages = self.message_ids.filtered(
+            lambda m: m.message_type in ("comment", "email")
+        ).sorted(key=lambda m: (m.date, m.id), reverse=True)
+        days_since = (today - fields.Datetime.context_timestamp(
+            self, messages[0].date).date()).days if messages else None
+
+        basis = "crm_data"
+        analysis = None
+        if self.ai_last_analyzed:
+            fresh = (fields.Datetime.now() - self.ai_last_analyzed).days <= 7
+            newer_msg = messages and messages[0].date > self.ai_last_analyzed
+            if fresh and not newer_msg:
+                basis = "analysis"
+                analysis = {
+                    "priority": self.ai_priority, "intent": self.ai_intent,
+                    "next_step": self.ai_next_step, "risks": self.ai_risks,
+                }
+        open_acts = self.env["mail.activity"].search([
+            ("res_model", "=", "crm.lead"), ("res_id", "=", self.id)], limit=10)
+        context = {
+            "today": str(today),
+            "timezone": self.env.user.tz,
+            "language": self.partner_id.lang or self.env.user.lang,
+            "basis": basis,
+            "days_since_contact": days_since,
+            "lead": {
+                "name": self.name, "partner_name": self.partner_name,
+                "contact_name": self.contact_name,
+                "has_email": bool(self.email_from), "has_phone": bool(self.phone),
+                "source": self.source_id.name or "",
+                "expected_revenue": self.expected_revenue,
+                "probability": self.probability,
+                "stage": self.stage_id.name or "",
+                "description": html2plaintext(self.description or "")[:1000],
+            },
+            "analysis": analysis,
+            "open_activities": [{
+                "type": a.activity_type_id.name or "", "summary": a.summary or "",
+                "deadline": str(a.date_deadline),
+            } for a in open_acts],
+            "messages": [{
+                "date": str(m.date)[:10],
+                "text": html2plaintext(m.body or "").replace("\n", " ")[:300],
+            } for m in messages[:6]],
+        }
+        return context, basis
+
+    def action_ai_followup(self):
+        """"AI Follow-up" button: open the editable preview dialog.
+
+        Reuses the user's latest draft when nothing changed since (same
+        input hash) so repeated clicks neither cost API calls nor create
+        multiple drafts.
+        """
+        self.ensure_one()
+        Followup = self.env["ai.followup"]
+        context, __ = self._build_followup_context()
+        digest = fu.input_hash([context, ""])
+        draft = Followup.search([
+            ("lead_id", "=", self.id), ("state", "=", "draft"),
+            ("input_hash", "=", digest), ("create_uid", "=", self.env.uid),
+        ], limit=1)
+        if not draft:
+            # Older drafts of this user are superseded by the new one.
+            Followup.search([
+                ("lead_id", "=", self.id), ("state", "=", "draft"),
+                ("create_uid", "=", self.env.uid)]).action_discard()
+            vals = Followup._generate_vals(self)
+            vals["lead_id"] = self.id
+            draft = Followup.create(vals)
+        return draft._reopen_action()
 
     def _build_ai_payload(self):
         """Collect the lead fields the AI provider needs, as a plain dict.

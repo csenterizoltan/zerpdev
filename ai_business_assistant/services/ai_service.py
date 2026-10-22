@@ -3,7 +3,7 @@
 AI provider abstraction layer for the AI Business Assistant module.
 
 The CRM model never talks to an AI vendor SDK directly. It only ever
-calls ``get_ai_provider(env).analyze_lead(payload)``. This keeps the
+calls ``get_ai_provider(env).analyze_lead(payload)`` (or ``generate_followup``). This keeps the
 CRM layer free of vendor-specific logic and makes it trivial to add a
 new backend (or switch the default one) purely through configuration
 (Settings > Technical > Parameters > System Parameters, or the
@@ -40,6 +40,8 @@ import requests
 
 from odoo import _
 from odoo.exceptions import UserError
+
+from . import followup
 
 _logger = logging.getLogger(__name__)
 
@@ -153,6 +155,17 @@ class AIProviderBase:
 
         ``payload`` is a plain dict built by ``crm.lead._build_ai_payload()``.
         """
+        return _normalize_result(
+            _safe_json_loads(self._complete(_build_prompt(payload), 800)))
+
+    def generate_followup(self, context, refinement=""):
+        """Return the RAW follow-up dict (validated later by
+        ``followup.normalize_followup``). One AI call per generation."""
+        prompt = followup.build_followup_prompt(context, refinement)
+        return _safe_json_loads(self._complete(prompt, 1200))
+
+    def _complete(self, prompt, max_tokens):
+        """Send ``prompt`` and return the model's text answer."""
         raise NotImplementedError
 
 
@@ -220,13 +233,27 @@ class DemoAIProvider(AIProviderBase):
             "suggested_email": suggested_email,
         })
 
+    def generate_followup(self, context, refinement=""):
+        return followup.demo_followup(context)
+
+
+def _post(label, url, headers, body):
+    response = requests.post(url, headers=headers, json=body, timeout=DEFAULT_TIMEOUT)
+    if response.status_code != 200:
+        _logger.error("%s API error: %s %s", label, response.status_code, response.text)
+        raise UserError(_(
+            "The %(label)s API returned an error (%(code)s). Please check "
+            "your configuration and try again."
+        ) % {"label": label, "code": response.status_code})
+    return response.json()
+
 
 class AnthropicAIProvider(AIProviderBase):
     """Calls the Anthropic Messages API."""
 
     API_URL = "https://api.anthropic.com/v1/messages"
 
-    def analyze_lead(self, payload):
+    def _complete(self, prompt, max_tokens):
         icp = self.env["ir.config_parameter"].sudo()
         api_key = icp.get_param(CONFIG_API_KEY_KEY)
         if not api_key:
@@ -235,33 +262,17 @@ class AnthropicAIProvider(AIProviderBase):
                 "AI Assistant to add one, or switch to the Demo provider."
             ))
         model = icp.get_param(CONFIG_MODEL_KEY) or DEFAULT_MODELS["anthropic"]
-        prompt = _build_prompt(payload)
-
-        response = requests.post(
-            self.API_URL,
-            headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": model,
-                "max_tokens": 800,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=DEFAULT_TIMEOUT,
-        )
-        if response.status_code != 200:
-            _logger.error("Anthropic API error: %s %s", response.status_code, response.text)
-            raise UserError(_(
-                "The Anthropic API returned an error (%s). Please check "
-                "your API key and try again."
-            ) % response.status_code)
-
-        data = response.json()
-        text_blocks = [b.get("text", "") for b in data.get("content", []) if b.get("type") == "text"]
-        parsed = _safe_json_loads("\n".join(text_blocks))
-        return _normalize_result(parsed)
+        data = _post("Anthropic", self.API_URL, {
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }, {
+            "model": model,
+            "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}],
+        })
+        return "\n".join(
+            b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
 
 
 class OpenAIAIProvider(AIProviderBase):
@@ -269,7 +280,7 @@ class OpenAIAIProvider(AIProviderBase):
 
     API_URL = "https://api.openai.com/v1/chat/completions"
 
-    def analyze_lead(self, payload):
+    def _complete(self, prompt, max_tokens):
         icp = self.env["ir.config_parameter"].sudo()
         api_key = icp.get_param(CONFIG_API_KEY_KEY)
         if not api_key:
@@ -278,39 +289,22 @@ class OpenAIAIProvider(AIProviderBase):
                 "Assistant to add one, or switch to the Demo provider."
             ))
         model = icp.get_param(CONFIG_MODEL_KEY) or DEFAULT_MODELS["openai"]
-        prompt = _build_prompt(payload)
-
-        response = requests.post(
-            self.API_URL,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.3,
-            },
-            timeout=DEFAULT_TIMEOUT,
-        )
-        if response.status_code != 200:
-            _logger.error("OpenAI API error: %s %s", response.status_code, response.text)
-            raise UserError(_(
-                "The OpenAI API returned an error (%s). Please check "
-                "your API key and try again."
-            ) % response.status_code)
-
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        parsed = _safe_json_loads(content)
-        return _normalize_result(parsed)
+        data = _post("OpenAI", self.API_URL, {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }, {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.3,
+        })
+        return data["choices"][0]["message"]["content"]
 
 
 class AzureOpenAIAIProvider(AIProviderBase):
     """Calls an Azure OpenAI deployment (Chat Completions compatible API)."""
 
-    def analyze_lead(self, payload):
+    def _complete(self, prompt, max_tokens):
         icp = self.env["ir.config_parameter"].sudo()
         api_key = icp.get_param(CONFIG_API_KEY_KEY)
         endpoint = icp.get_param(CONFIG_AZURE_ENDPOINT_KEY)
@@ -321,32 +315,17 @@ class AzureOpenAIAIProvider(AIProviderBase):
                 "and deployment name are all required). Go to Settings > "
                 "AI Assistant, or switch to the Demo provider."
             ))
-        prompt = _build_prompt(payload)
         url = (
             f"{endpoint.rstrip('/')}/openai/deployments/{deployment}"
             "/chat/completions?api-version=2024-02-15-preview"
         )
-
-        response = requests.post(
-            url,
-            headers={"api-key": api_key, "Content-Type": "application/json"},
-            json={
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3,
-            },
-            timeout=DEFAULT_TIMEOUT,
-        )
-        if response.status_code != 200:
-            _logger.error("Azure OpenAI API error: %s %s", response.status_code, response.text)
-            raise UserError(_(
-                "The Azure OpenAI API returned an error (%s). Please "
-                "check your configuration and try again."
-            ) % response.status_code)
-
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        parsed = _safe_json_loads(content)
-        return _normalize_result(parsed)
+        data = _post("Azure OpenAI", url, {
+            "api-key": api_key, "Content-Type": "application/json",
+        }, {
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+        })
+        return data["choices"][0]["message"]["content"]
 
 
 _PROVIDER_REGISTRY = {

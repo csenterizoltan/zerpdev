@@ -15,12 +15,12 @@ class ResConfigSettings(models.TransientModel):
 
     ai_business_assistant_provider = fields.Selection(
         selection=[
-            ("demo", "Demo (Offline, no API key needed)"),
+            ("demo", "Demo (offline, no API key needed)"),
             ("anthropic", "Anthropic Claude"),
             ("openai", "OpenAI"),
-           
+            ("azure_openai", "Azure OpenAI"),
         ],
-        string="AI Providers",
+        string="AI Provider",
         config_parameter=CONFIG_PROVIDER_KEY,
         default="demo",
     )

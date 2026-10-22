@@ -70,14 +70,47 @@ The demo provider is fully deterministic (rule-based on probability,
 revenue and phone presence) so results are stable and repeatable for
 screenshots or a recorded walkthrough.
 
+## 4b. AI Follow-up Generator
+
+Button **AI Follow-up** (lead form header, next to *Analyze with AI*):
+
+1. Uses the last AI analysis if it is fresh (<= 7 days and no newer
+   message); otherwise builds the suggestion directly from CRM data
+   (`basis` is shown in the preview).
+2. Sends one AI request with minimized context (no phone/email values,
+   open activities, last 6 messages, days since last contact, language).
+3. Shows an **editable preview**: channel (activity type), deadline,
+   assignee, summary, goal, questions, items to clarify, rationale, draft
+   message. *Regenerate* accepts an optional hint; *Cancel* discards.
+4. **Create Activity** creates the `mail.activity` (rationale, questions
+   and clarifications go into its note, HTML-escaped) and links it via
+   `mail.activity.ai_followup_id`.
+
+AI output is never trusted: channel is whitelisted (phone/email/meeting/
+todo), deadline is clamped to 0-60 days and moved off weekends, texts
+are length-limited, the assignee must be an internal user.
+
+Duplicate protection: row lock + state check (a second click returns
+"already created"), partial unique index on `ai_followup.activity_id`,
+warning plus explicit *Create anyway* when a similar open activity
+(same type, deadline +/- 2 days) exists, and reuse of an unchanged draft
+instead of a new AI call. The Demo provider also supports the feature
+(rule-based plan, no API key). History: lead > AI Assistant tab.
+
+The old header button *Create Next Activity* was removed from the form
+view (the method `action_ai_create_activity` still exists).
+
 ## 5. Architecture
 
 ```
 ai_business_assistant/
 ├── models/
-│   ├── crm_lead.py            # AI fields + action_ai_analyze / action_ai_create_activity
+│   ├── crm_lead.py            # AI fields + analyze / create activity / action_ai_followup
+│   ├── ai_followup.py         # suggestion record + editable preview + activity creation
+│   ├── mail_activity.py       # ai_followup_id link
 │   └── res_config_settings.py # Settings panel (provider, key, model)
 ├── services/
+│   ├── followup.py            # pure-Python prompt, validation, demo plan
 │   └── ai_service.py          # Provider-agnostic abstraction layer
 │       ├── AIProviderBase
 │       ├── DemoAIProvider          (offline, no key)
