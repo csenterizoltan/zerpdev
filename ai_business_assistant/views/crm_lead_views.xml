@@ -23,8 +23,8 @@
 
             <!-- Dedicated notebook page so the result is fully screenshotable -->
             <xpath expr="//notebook" position="inside">
-                <page string="AI Assistant" name="ai_assistant">
-                    <div class="alert alert-info" role="alert"
+                <!-- <page string="AI Assistant" name="ai_assistant"> -->
+                    <!-- <div class="alert alert-info" role="alert"
                          invisible="ai_last_analyzed">
                         No AI analysis yet. Click <b>Analyze with AI</b> in the
                         header to get a priority score, next step and a
@@ -43,17 +43,71 @@
                             <field name="ai_last_analyzed"/>
                         </group>
                         <group string="Risks / Missing Info">
-                            <field name="ai_risks" nolabel="1"/>
+                            <field name="ai_risks" nolabel="1" class="w-100 mb-3"/>
                         </group>
                     </group>
 
                     <group invisible="not ai_last_analyzed" string="AI Summary">
-                        <field name="ai_summary" nolabel="1"/>
+                        <field name="ai_summary" nolabel="1" class="w-100 mb-3"/>
                     </group>
 
                     <group invisible="not ai_last_analyzed" string="Suggested Follow-up Email">
-                        <field name="ai_suggested_email" nolabel="1"/>
-                    </group>
+                        <field name="ai_suggested_email" nolabel="1" class="w-100 mb-3"/>
+                    </group> -->
+                <!-- </page> -->
+                <page string="AI Assistant" name="ai_assistant">
+
+                    <!-- Empty state -->
+                    <div class="alert alert-info d-flex align-items-center gap-2 mb-3"
+                        role="alert" invisible="ai_last_analyzed">
+                        <i class="fa fa-magic fa-lg" title="AI"/>
+                        <span>
+                            No AI analysis yet. Click <b>Analyze with AI</b> in the header
+                            to get a priority score, next step and a draft follow-up email.
+                        </span>
+                    </div>
+
+                    <div invisible="not ai_last_analyzed">
+
+                        <!-- Key facts: short values, two columns -->
+                        <group>
+                            <group string="Assessment">
+                                <field name="ai_priority" widget="badge"
+                                    decoration-danger="ai_priority == 'high'"
+                                    decoration-warning="ai_priority == 'medium'"
+                                    decoration-success="ai_priority == 'low'"/>
+                                <field name="ai_intent"/>
+                            </group>
+                            <group string="Follow-up">
+                                <field name="ai_suggested_followup_date"/>
+                                <field name="ai_last_analyzed" string="Analyzed on"/>
+                            </group>
+                        </group>
+
+                        <!-- Next step: highlighted, full width -->
+                        <separator string="Recommended Next Step"/>
+                        <div class="alert alert-success mb-3" role="status">
+                            <field name="ai_next_step" nolabel="1" readonly="1"/>
+                        </div>
+
+                        <!-- Risks: highlighted only when present -->
+                        <div invisible="not ai_risks">
+                            <separator string="Risks / Missing Info"/>
+                            <div class="alert alert-warning mb-3" role="status">
+                                <field name="ai_risks" nolabel="1" readonly="1"/>
+                            </div>
+                        </div>
+
+                        <!-- Summary: full width -->
+                        <separator string="AI Summary"/>
+                        <field name="ai_summary" nolabel="1" widget="text" readonly="1"
+                            class="w-100 mb-3"/>
+
+                        <!-- Draft email: full width, editable before sending -->
+                        <separator string="Suggested Follow-up Email"/>
+                        <field name="ai_suggested_email" nolabel="1" class="w-100"
+                            placeholder="The AI-drafted email will appear here..."/>
+                    </div>
                 </page>
             </xpath>
 
