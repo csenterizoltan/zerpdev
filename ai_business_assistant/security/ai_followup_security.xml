@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- A follow-up is visible/editable only if its lead is (the lead's own
+         record rules apply), so salespeople never see other teams' data. -->
+    <record id="ai_followup_rule_lead_access" model="ir.rule">
+        <field name="name">AI Follow-up: follows lead access</field>
+        <field name="model_id" ref="model_ai_followup"/>
+        <field name="groups" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+        <field name="domain_force">[('lead_id', 'any', [])]</field>
+    </record>
+</odoo>

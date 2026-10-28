@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "AI Business Assistant",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.1",
     "category": "Sales/CRM",
     "summary": "AI-powered lead analysis and next-step automation for CRM",
     "description": """
@@ -14,7 +14,10 @@ Adds an "AI Assistant" panel to CRM Leads/Opportunities that:
 * Produces a structured summary: priority, buying intent, next step,
   suggested follow-up date, risks, and a draft follow-up email
 * Lets the user create the AI-recommended next Activity with one click
-  ("Create Next Activity")
+  ("Create Next Activity" method, kept for compatibility)
+* AI Follow-up Generator: suggests when, via which channel, why and what
+  to ask next, shows an editable preview and creates the Activity only
+  after approval (duplicate-safe, rationale stored on the activity)
 
 The AI provider is fully abstracted behind a small service layer
 (`services/ai_service.py`) so the backend (OpenAI, Azure OpenAI,
@@ -30,6 +33,8 @@ screenshotted and demoed without any API key at all.
     "depends": ["crm", "mail"],
     "data": [
         "security/ir.model.access.csv",
+        "security/ai_followup_security.xml",
+        "views/ai_followup_views.xml",
         "views/res_config_settings_views.xml",
         "views/crm_lead_views.xml",
         "data/ai_business_assistant_data.xml",
@@ -38,6 +43,6 @@ screenshotted and demoed without any API key at all.
         "data/crm_lead_demo.xml",
     ],
     "installable": True,
-    #"application": True,
-    #"auto_install": False,
+    "application": False,
+    "auto_install": False,
 }

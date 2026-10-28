@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="ai_followup_view_form" model="ir.ui.view">
+        <field name="name">ai.followup.form</field>
+        <field name="model">ai.followup</field>
+        <field name="arch" type="xml">
+        <form string="AI Follow-up" create="0" delete="0" edit="1">
+            <field name="state" invisible="1"/>
+            <field name="lead_id" invisible="1"/>
+            <field name="basis" invisible="1"/>
+
+            <header>
+                <field name="state" widget="statusbar" statusbar_visible="draft,accepted"/>
+            </header>
+
+            <sheet>
+                <div class="alert alert-info" role="alert" invisible="state != 'draft'">
+                    <strong>AI suggestion — you decide.</strong>
+                    Review and edit everything below. Nothing is created until you
+                    click <strong>Create Activity</strong>.
+                    <span invisible="basis != 'crm_data'">
+                        Built from CRM data only (no fresh AI analysis).
+                    </span>
+                </div>
+                <div class="alert alert-warning" role="alert"
+                    invisible="not similar_activity or state != 'draft'">
+                    <field name="similar_activity" nolabel="1"/>
+                </div>
+
+            <group>
+                <group string="When &amp; how" name="when_how">
+                    <field name="channel" readonly="state != 'draft'"/>
+                    <field name="deadline" readonly="state != 'draft'"/>
+                    <field name="deadline_reason" readonly="state != 'draft'"/>
+                    <field name="user_id" readonly="state != 'draft'"
+                        options="{'no_create': True, 'no_open': True}"/>
+                </group>
+                <group string="Suggestion" name="suggestion">
+                    <field name="summary" readonly="state != 'draft'"/>
+                    <field name="goal" readonly="state != 'draft'"/>
+                    <field name="confidence" widget="badge"
+                        decoration-success="confidence == 'high'"
+                        decoration-warning="confidence == 'medium'"
+                        decoration-danger="confidence == 'low'"/>
+                    <field name="basis" readonly="1"/>
+                </group>
+            </group>
+
+                <notebook>
+                    <page string="Questions &amp; clarifications" name="questions">
+                        <group>
+                            <group string="Questions to ask">
+                                <field name="questions" nolabel="1" colspan="2"
+                                    readonly="state != 'draft'"/>
+                            </group>
+                            <group string="Information to clarify">
+                                <field name="clarify" nolabel="1" colspan="2"
+                                    readonly="state != 'draft'"/>
+                            </group>
+                        </group>
+                    </page>
+                    <page string="Rationale" name="rationale">
+                        <field name="rationale" nolabel="1" readonly="state != 'draft'"/>
+                    </page>
+                    <page string="Draft message" name="draft_message">
+                        <field name="draft_message" nolabel="1" readonly="state != 'draft'"/>
+                    </page>
+                </notebook>
+
+                    <group name="regenerate" invisible="state != 'draft'">
+                        <field name="refinement"
+                            placeholder="e.g. prefer a phone call, shorter timeline"/>
+                        <field name="confirm_duplicate" invisible="not similar_activity"/>
+                    </group>
+                </sheet>
+
+                <footer>
+                    <button name="action_create_activity" type="object"
+                            string="Create Activity" class="btn-primary"
+                            data-hotkey="q" invisible="state != 'draft'"/>
+                    <button name="action_regenerate" type="object"
+                            string="Regenerate" class="btn-secondary"
+                            data-hotkey="r" invisible="state != 'draft'"/>
+                    <button name="action_discard" type="object"
+                            string="Discard" class="btn-secondary"
+                            data-hotkey="x" invisible="state != 'draft'"/>
+                    <button string="Close" special="cancel" class="btn-secondary"
+                            data-hotkey="x" invisible="state == 'draft'"/>
+                </footer>
+            </form>
+            <!-- <form string="AI Follow-up" create="0" delete="0">
+                <field name="state" invisible="1"/>
+                <field name="lead_id" invisible="1"/>
+                <div class="alert alert-info" role="alert" invisible="state != 'draft'">
+                    <b>AI suggestion — you decide.</b> Review and edit everything
+                    below. Nothing is created until you click <b>Create Activity</b>.
+                    <span invisible="basis != 'crm_data'">Built from CRM data only
+                    (no fresh AI analysis).</span>
+                </div>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not similar_activity or state != 'draft'">
+                    <field name="similar_activity" nolabel="1"/>
+                </div> -->
+                <!-- <group>
+                    <group string="When &amp; how">
+                        <field name="channel" readonly="state != 'draft'"/>
+                        <field name="deadline" readonly="state != 'draft'"/>
+                        <field name="deadline_reason" readonly="state != 'draft'"/>
+                        <field name="user_id" readonly="state != 'draft'"/>
+                    </group>
+                    <group string="Suggestion">
+                        <field name="summary" readonly="state != 'draft'"/>
+                        <field name="goal" readonly="state != 'draft'"/>
+                        <field name="confidence" widget="badge"/>
+                        <field name="basis"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Questions to ask">
+                        <field name="questions" nolabel="1" readonly="state != 'draft'"/>
+                    </group>
+                    <group string="Information to clarify">
+                        <field name="clarify" nolabel="1" readonly="state != 'draft'"/>
+                    </group>
+                </group>
+                <group string="Why (AI rationale)">
+                    <field name="rationale" nolabel="1" readonly="state != 'draft'"/>
+                </group>
+                <group string="Draft message / call script">
+                    <field name="draft_message" nolabel="1" readonly="state != 'draft'"/>
+                </group>
+                <group invisible="state != 'draft'">
+                    <field name="refinement" placeholder="e.g. prefer a phone call, shorter timeline"/>
+                    <field name="confirm_duplicate" invisible="not similar_activity"/>
+                </group> -->
+                <!-- <footer>
+                    <button name="action_create_activity" type="object"
+                            string="Create Activity" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_regenerate" type="object"
+                            string="Regenerate" class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_discard" type="object"
+                            string="Cancel" class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button string="Close" special="cancel" class="btn-secondary"
+                            invisible="state == 'draft'"/>
+                </footer>
+            </form> -->
+        </field>
+    </record>
+
+</odoo>
