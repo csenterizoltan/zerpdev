@@ -25,7 +25,7 @@
 
             <!-- Dedicated notebook page so the result is fully screenshotable -->
             <xpath expr="//notebook" position="inside">
-                <page string="AI Assistant" name="ai_assistant">
+                <page string="AI Assistant" name="ai_assistant" invisible="not ai_last_analyzed">
                     <div class="alert alert-info" role="alert"
                          invisible="ai_last_analyzed">
                         No AI analysis yet. Click <b>Analyze with AI</b> in the
@@ -33,7 +33,7 @@
                         draft follow-up email for this lead.
                     </div>
 
-                    <group invisible="not ai_last_analyzed">
+                    <!-- <group invisible="not ai_last_analyzed">
                         <group string="AI Analysis">
                             <field name="ai_priority" widget="badge"
                                    decoration-danger="ai_priority == 'high'"
@@ -55,7 +55,49 @@
 
                     <group invisible="not ai_last_analyzed" string="Suggested Follow-up Email">
                         <field name="ai_suggested_email" nolabel="1"/>
-                    </group>
+                    </group> -->
+
+                    <div invisible="not ai_last_analyzed">
+
+                        <!-- Key facts: short values, two columns -->
+                        <group>
+                            <group string="Assessment">
+                                <field name="ai_priority" widget="badge"
+                                    decoration-danger="ai_priority == 'high'"
+                                    decoration-warning="ai_priority == 'medium'"
+                                    decoration-success="ai_priority == 'low'"/>
+                                <field name="ai_intent"/>
+                            </group>
+                            <group string="Follow-up">
+                                <field name="ai_suggested_followup_date"/>
+                                <field name="ai_last_analyzed" string="Analyzed on"/>
+                            </group>
+                        </group>
+
+                        <!-- Next step: highlighted, full width -->
+                        <separator string="Recommended Next Step"/>
+                        <div class="alert alert-success mb-3" role="status">
+                            <field name="ai_next_step" nolabel="1" readonly="1"/>
+                        </div>
+
+                        <!-- Risks: highlighted only when present -->
+                        <div invisible="not ai_risks">
+                            <separator string="Risks / Missing Info"/>
+                            <div class="alert alert-warning mb-3" role="status">
+                                <field name="ai_risks" nolabel="1" readonly="1"/>
+                            </div>
+                        </div>
+
+                        <!-- Summary: full width -->
+                        <separator string="AI Summary"/>
+                        <field name="ai_summary" nolabel="1" widget="text" readonly="1"
+                            class="w-100 mb-3"/>
+
+                        <!-- Draft email: full width, editable before sending -->
+                        <separator string="Suggested Follow-up Email"/>
+                        <field name="ai_suggested_email" nolabel="1" class="w-100"
+                            placeholder="The AI-drafted email will appear here..."/>
+                    </div>
 
                     <separator string="AI Follow-up history"/>
                     <field name="ai_followup_ids" nolabel="1">
