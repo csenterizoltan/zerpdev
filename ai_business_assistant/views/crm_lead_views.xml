@@ -33,30 +33,6 @@
                         draft follow-up email for this lead.
                     </div>
 
-                    <!-- <group invisible="not ai_last_analyzed">
-                        <group string="AI Analysis">
-                            <field name="ai_priority" widget="badge"
-                                   decoration-danger="ai_priority == 'high'"
-                                   decoration-warning="ai_priority == 'medium'"
-                                   decoration-success="ai_priority == 'low'"/>
-                            <field name="ai_intent"/>
-                            <field name="ai_next_step"/>
-                            <field name="ai_suggested_followup_date"/>
-                            <field name="ai_last_analyzed"/>
-                        </group>
-                        <group string="Risks / Missing Info">
-                            <field name="ai_risks" nolabel="1"/>
-                        </group>
-                    </group>
-
-                    <group invisible="not ai_last_analyzed" string="AI Summary">
-                        <field name="ai_summary" nolabel="1"/>
-                    </group>
-
-                    <group invisible="not ai_last_analyzed" string="Suggested Follow-up Email">
-                        <field name="ai_suggested_email" nolabel="1"/>
-                    </group> -->
-
                     <div invisible="not ai_last_analyzed">
 
                         <!-- Key facts: short values, two columns -->
